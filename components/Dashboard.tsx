@@ -1,4 +1,5 @@
 import OverviewCards from './OverviewCards'
+import CountdownBanner from './CountdownBanner'
 import FedWatchChart from './FedWatchChart'
 import FactorPanel from './FactorPanel'
 import EconomicCalendar from './EconomicCalendar'
@@ -16,10 +17,10 @@ export default function Dashboard() {
         <p className="text-gray-400">
           美联储利率监测看板 / Federal Reserve Rate Monitor
         </p>
-        <p className="text-sm text-gray-500 mt-1">
-          最后更新: 2026-06-09 03:00 UTC
-        </p>
       </div>
+
+      {/* Countdown Banner */}
+      <CountdownBanner />
 
       {/* Overview Cards */}
       <OverviewCards />

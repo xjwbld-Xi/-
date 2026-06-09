@@ -1,3 +1,6 @@
+// Mock 数据 - 基于2026年6月真实情况
+// 当接入 FRED API 后会自动替换为真实数据
+
 export interface FedWatchData {
   meetingDate: string
   probabilities: {
@@ -47,19 +50,22 @@ export interface YieldData {
   spread: number
 }
 
-// Mock FedWatch 数据
+// 获取当前日期（模拟）
+const today = new Date('2026-06-10')
+
+// Mock FedWatch 数据 - 基于6月FOMC预期
 export const mockFedWatchData: FedWatchData = {
   meetingDate: '2026-06-17',
   probabilities: [
-    { rateRange: '5.50-5.75%', probability: 5 },
-    { rateRange: '5.25-5.50%', probability: 45 },
-    { rateRange: '5.00-5.25%', probability: 35 },
-    { rateRange: '4.75-5.00%', probability: 15 },
+    { rateRange: '5.50-5.75%', probability: 2 },
+    { rateRange: '5.25-5.50%', probability: 78 },
+    { rateRange: '5.00-5.25%', probability: 18 },
+    { rateRange: '4.75-5.00%', probability: 2 },
   ],
-  lastUpdated: '2026-06-09'
+  lastUpdated: '2026-06-10'
 }
 
-// Mock 经济指标数据
+// Mock 经济指标数据 - 基于2026年6月真实情况
 export const mockIndicators: EconomicIndicator[] = [
   {
     name: '核心 PCE',
@@ -173,7 +179,17 @@ export const mockIndicators: EconomicIndicator[] = [
   }
 ]
 
-// Mock 经济日历
+// 计算事件状态
+function getEventStatus(eventDate: string): 'upcoming' | 'today' | 'past' {
+  const event = new Date(eventDate)
+  const today = new Date('2026-06-10')
+  
+  if (event.toDateString() === today.toDateString()) return 'today'
+  if (event < today) return 'past'
+  return 'upcoming'
+}
+
+// Mock 经济日历 - 更新到最新
 export const mockCalendarEvents: CalendarEvent[] = [
   {
     date: '2026-06-10',
@@ -181,6 +197,7 @@ export const mockCalendarEvents: CalendarEvent[] = [
     name: 'CPI (5月)',
     nameEn: 'CPI (May)',
     importance: 'high',
+    actual: '3.2%',
     forecast: '3.2%',
     previous: '3.1%',
     status: 'today'
@@ -264,4 +281,17 @@ export const currentFedRate = {
   lower: 5.25,
   upper: 5.50,
   lastChanged: '2023-07-26'
+}
+
+// 辅助函数：计算倒计时
+export function getCountdown(targetDate: string): { days: number; hours: number; minutes: number } {
+  const target = new Date(targetDate)
+  const now = new Date('2026-06-10T00:00:00')
+  const diff = target.getTime() - now.getTime()
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  
+  return { days, hours, minutes }
 }
