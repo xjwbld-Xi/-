@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { getFedWatchData } from './cme-fedwatch'
 import { getEconomicCalendar } from './trading-economics'
+import { getAllKeyIndicators } from './fred'
 
 // 数据缓存文件路径
 const CACHE_DIR = path.join(process.cwd(), 'data')
@@ -53,11 +54,19 @@ export function isCacheExpired(cache: CacheData, maxAge: number = 3600000): bool
   return (now - lastUpdate) > maxAge
 }
 
+// 从环境变量获取 API Keys
+function getApiKeys() {
+  return {
+    fred: process.env.FRED_API_KEY || '',
+    tradingEconomics: process.env.TRADING_ECONOMICS_KEY || '',
+    serverChan: process.env.SERVER_CHAN_KEY || ''
+  }
+}
+
 // 获取完整数据（优先缓存，回退到 API）
-export async function getDashboardData(
-  fredApiKey?: string,
-  tradingEconKey?: string
-): Promise<CacheData> {
+export async function getDashboardData(): Promise<CacheData> {
+  const keys = getApiKeys()
+  
   // 尝试读取缓存
   const cache = readCache()
   
@@ -71,19 +80,27 @@ export async function getDashboardData(
   // 并行获取所有数据
   const [fedWatch, calendar] = await Promise.all([
     getFedWatchData(),
-    getEconomicCalendar(tradingEconKey)
+    getEconomicCalendar(keys.tradingEconomics)
   ])
   
-  // TODO: 获取 FRED 数据
-  // const indicators = fredApiKey 
-  //   ? await getAllKeyIndicators(fredApiKey)
-  //   : {}
+  // 获取 FRED 数据（如果有 API Key）
+  let indicators = {}
+  if (keys.fred) {
+    try {
+      indicators = await getAllKeyIndicators(keys.fred)
+      console.log('✅ FRED data fetched successfully')
+    } catch (error) {
+      console.error('❌ Failed to fetch FRED data:', error)
+    }
+  } else {
+    console.log('⚠️ No FRED_API_KEY found, using mock data')
+  }
   
   const data: CacheData = {
     lastUpdated: new Date().toISOString(),
     fedWatch,
     calendar,
-    indicators: {},
+    indicators,
     yields: [
       { date: '2026-06-02', yield2Y: 4.85, yield10Y: 4.50, spread: -0.35 }
     ]
@@ -93,4 +110,27 @@ export async function getDashboardData(
   writeCache(data)
   
   return data
+}
+
+// 检查配置状态
+export function checkConfig() {
+  const keys = getApiKeys()
+  
+  return {
+    fred: {
+      configured: !!keys.fred,
+      status: keys.fred ? '✅ 已配置' : '❌ 未配置',
+      url: 'https://fredaccount.stlouisfed.org/apikeys'
+    },
+    serverChan: {
+      configured: !!keys.serverChan,
+      status: keys.serverChan ? '✅ 已配置' : '❌ 未配置（可选）',
+      url: 'https://sct.ftqq.com'
+    },
+    tradingEconomics: {
+      configured: !!keys.tradingEconomics,
+      status: keys.tradingEconomics ? '✅ 已配置' : '❌ 未配置（可选）',
+      url: 'https://tradingeconomics.com/api/'
+    }
+  }
 }
