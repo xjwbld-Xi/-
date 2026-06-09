@@ -4,7 +4,17 @@ on:
   schedule:
     # 每天 UTC 03:00 运行 (北京时间 11:00)
     - cron: '0 3 * * *'
+    # 重要数据日额外更新（CPI/非农/FOMC等）
+    - cron: '0 9,15,21 * * *'
   workflow_dispatch:
+    inputs:
+      notify:
+        description: 'Send WeChat notification'
+        required: false
+        default: 'false'
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
   update-and-deploy:
@@ -17,15 +27,23 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
         
     - name: Install dependencies
-      run: npm install
+      run: npm ci
       
     - name: Update data
       run: npm run update-data
       env:
         FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        TRADING_ECONOMICS_KEY: ${{ secrets.TRADING_ECONOMICS_KEY }}
+        
+    - name: Send WeChat notification
+      if: github.event.inputs.notify == 'true' || github.event.schedule == '0 3 * * *'
+      run: npx ts-node scripts/wechat-notify.ts
+      env:
+        SERVER_CHAN_KEY: ${{ secrets.SERVER_CHAN_KEY }}
         
     - name: Build project
       run: npm run build
